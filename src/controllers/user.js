@@ -106,37 +106,43 @@ exports.createUser = async (req, res) => {
 
 
 exports.updateUser = async (req, res) => {
-    const {correo} = req.params
-    const {nombre, apellidos, clave} = req.body;
+  const { correo } = req.params;
+  const { nuevoNombre, nuevosApellidos, nuevaClave, nuevoCorreo } = req.body;
 
-    try {
-        if (nombre === undefined || apellidos === undefined || correo === undefined || clave === undefined) {
-            res.status(400).json({
-                estado: 0,
-                mensaje: "faltan parámetros"
-            })
-        } else {
-            const salt = await bcrypt.genSalt(8)
-            const claveEncriptada = await bcrypt.hash(clave, salt)
-            // await userModel.findOneAndUpdate({filtro},{campos_a_actualizar})
-            await userModel.findOneAndUpdate({correo: correo}, {
-                correo: correo,
-                nombre: nombre,
-                apellidos: apellidos,
-                clave: claveEncriptada
-            })
-            res.status(200).json({
-                estado: 1,
-                mensaje: "usuario actualizado correctamente"
-            })
-        }
-    } catch (error) {
-        res.status(500).json({
-            estado: 0,
-            mensaje: "ha ocurrido un error desconocido"
-        })
+  try {
+    const newUser = await userModel.findOne({ correo: nuevoCorreo }).exec();
+    if (newUser) {
+      return res.status(400).json({
+        estado: 0,
+        mensaje: "El nuevo correo ya está en uso",
+      });
     }
-}
+
+    await userModel.findOneAndUpdate(
+      { correo: correo },
+      {
+        $set: {
+          correo: nuevoCorreo,
+          nombre: nuevoNombre,
+          apellidos: nuevosApellidos,
+          clave: nuevaClave,
+        },
+      }
+    );
+
+    res.status(200).json({
+      estado: 1,
+      mensaje: "Usuario actualizado correctamente",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      estado: 0,
+      mensaje: "Ha ocurrido un error desconocido",
+    });
+  }
+};
+
 
 exports.deleteUser = async (req, res) => {
     const {correo} = req.params
